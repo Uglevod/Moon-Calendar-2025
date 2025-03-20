@@ -103,6 +103,12 @@
             font-weight: 500;
         }
         
+        /* Добавляем стиль для недель с последней четвертью луны */
+        tr.last-quarter-moon {
+            color: #8a2be2; /* Фиолетовый цвет для выделения */
+            font-weight: 600;
+        }
+        
         /* Стили для выделения текущей недели и текущего дня */
         tr.current-week {
             outline: 3px solid #ff5722;
@@ -219,10 +225,143 @@
             padding-top: 10px;
             border-top: 1px dotted #ccc;
         }
+        /* Добавляем стили для кастомного date picker */
+        .custom-datepicker {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .datepicker-toggle {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .datepicker-input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-family: "Courier New", Courier, monospace;
+            width: 150px;
+        }
+        
+        .datepicker-calendar {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 280px;
+            padding: 10px;
+            margin-top: 2px;
+        }
+        
+        .datepicker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .month-nav {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        
+        .month-display {
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+        }
+        
+        .calendar-day {
+            text-align: center;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .calendar-day:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .calendar-day.today {
+            background-color: #e6f7ff;
+            font-weight: bold;
+        }
+        
+        .calendar-day.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <h1>Недели 2025 года и фазы луны</h1>
+    
+    <!-- Заменяем стандартный date picker на кастомный -->
+    <div style="margin-bottom: 20px; padding: 15px; background-color: #f8f8f8; border-radius: 5px; border: 1px solid #ddd;">
+        <label for="start-date">Стартовая дата для расчета недель: </label>
+        <div class="custom-datepicker">
+            <div class="datepicker-toggle">
+                <input type="text" id="datepicker-input" class="datepicker-input" readonly value="01.01.2025">
+                <input type="hidden" id="start-date" value="2025-01-01">
+            </div>
+            <div id="datepicker-calendar" class="datepicker-calendar">
+                <button class="close-btn">&times;</button>
+                <div class="datepicker-header">
+                    <button class="month-nav prev-month">&lt;</button>
+                    <div class="month-display">Январь 2025</div>
+                    <button class="month-nav next-month">&gt;</button>
+                </div>
+                <div class="weekdays">
+                    <div>Пн</div>
+                    <div>Вт</div>
+                    <div>Ср</div>
+                    <div>Чт</div>
+                    <div>Пт</div>
+                    <div>Сб</div>
+                    <div>Вс</div>
+                </div>
+                <div class="calendar-days"></div>
+            </div>
+        </div>
+        <button id="recalculate-btn" style="margin-left: 10px; padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Пересчитать</button>
+    </div>
+    
     <table id="lunar-calendar">
         <thead>
             <tr>
@@ -323,40 +462,49 @@
         const currentMonth = currentDate.getMonth();
         const currentDay = currentDate.getDate();
         
-        // Получение первого дня года (может быть не понедельник)
-        const firstDayOfYear = new Date(2025, 0, 1);
+        // Определяем стартовую дату для расчетов
+        let startDate = new Date(2025, 0, 1); // По умолчанию 1 января 2025
+        let firstNewMoonReference; // Переменная для хранения первого новолуния выбранного года
         
-        // Поиск первого понедельника года или последнего понедельника предыдущего года
-        let currentMonday = new Date(firstDayOfYear);
-        currentMonday.setDate(currentMonday.getDate() - (currentMonday.getDay() || 7) + 1);
-        
-        // Если currentMonday находится в предыдущем году, но неделя относится к текущему году по ISO
-        if (currentMonday.getFullYear() < 2025 && getISOWeek(currentMonday) === 1) {
-            // Это первая неделя 2025 года
-        } else if (currentMonday.getFullYear() < 2025) {
-            // Перейти к первому понедельнику 2025 года
-            currentMonday = new Date(2025, 0, 1);
-            currentMonday.setDate(currentMonday.getDate() + (8 - currentMonday.getDay()) % 7);
-        }
-        
-        const tableBody = document.getElementById('calendar-body');
-        
-        // Создаем строки для каждой недели до конца 2025 года
-        while (currentMonday.getFullYear() <= 2025) {
-            const weekRow = document.createElement('tr');
-            const weekNumber = getISOWeek(currentMonday);
-            const weekDays = [];
-            const moonPhases = [];
+        // Функция для создания календаря
+        function createCalendar(startingDate) {
+            // Очищаем существующие данные
+            const tableBody = document.getElementById('calendar-body');
+            tableBody.innerHTML = '';
             
-            // Только если это неделя 2025 года
-            if (currentMonday.getFullYear() === 2025 || 
-                (currentMonday.getFullYear() < 2025 && weekNumber === 1)) {
+            // Сбрасываем модальные окна
+            document.querySelectorAll('.extended-modal, .modal-backdrop').forEach(el => {
+                el.remove();
+            });
+            
+            // Поиск первого понедельника не ранее стартовой даты
+            let currentMonday = new Date(startingDate);
+            // Если текущий день не понедельник (1), двигаемся назад до ближайшего понедельника
+            while (currentMonday.getDay() !== 1) {
+                currentMonday.setDate(currentMonday.getDate() - 1);
+            }
+            
+            // Определяем конечную дату - ровно год от начальной даты
+            const endDate = new Date(startingDate);
+            endDate.setFullYear(endDate.getFullYear() + 1);
+            endDate.setDate(endDate.getDate() - 1); // Вычитаем 1 день для получения полного года
+            
+            let weekNumber = 1;
+            
+            // Хранение истории фаз для соседних недель
+            let previousWeekPhases = [];
+            let currentWeekPhases = [];
+            let nextWeekPhases = [];
+            
+            // Временный массив для формирования следующей недели
+            const tempNextWeekPhases = [];
+            
+            while (currentMonday <= endDate) {
+                // Массивы для хранения дней недели и фаз луны
+                const weekDays = [];
+                const moonPhases = [];
                 
-                // Добавляем класс для цветовой группировки
-                const quarterClass = getQuarterClass(weekNumber);
-                weekRow.className = quarterClass;
-                
-                // Создаем массив дней недели
+                // Собираем дни недели и фазы луны
                 for (let i = 0; i < 7; i++) {
                     const currentDay = new Date(currentMonday);
                     currentDay.setDate(currentMonday.getDate() + i);
@@ -365,7 +513,17 @@
                     // Рассчитываем фазу луны для каждого дня
                     const moonPhase = getMoonPhase(currentDay);
                     moonPhases.push(moonPhase);
+                    
+                    // Сохраняем фазу для текущей недели
+                    nextWeekPhases.push(moonPhase);
                 }
+                
+                // Создаем строку для недели
+                const weekRow = document.createElement('tr');
+                
+                // Определяем класс квартала, исходя из номера недели
+                const quarterClass = getQuarterClass(weekNumber);
+                weekRow.className = quarterClass;
                 
                 // Создаем ячейку с номером недели
                 const weekNumberCell = document.createElement('td');
@@ -396,10 +554,9 @@
                 // Определяем преобладающую фазу луны
                 const predominantPhase = getPredominantMoonPhase(moonPhases);
                 
-                // Добавляем класс для убывающей луны, если это преобладающая фаза
-                // ИЛИ если хотя бы один день недели имеет фазу "Убывающая луна"
-                if (predominantPhase.name === "Убывающая луна" || moonPhases.some(phase => phase.name === "Убывающая луна")) {
-                    weekRow.classList.add("waning-moon");
+                // Проверяем условие для подсветки "Последней четверти"
+                if (shouldHighlightLastQuarter(predominantPhase, moonPhases, previousWeekPhases, currentWeekPhases)) {
+                    weekRow.classList.add("last-quarter-moon");
                 }
                 
                 // Создаем ячейку с датами недели
@@ -527,16 +684,48 @@
                 
                 // Добавляем строку в таблицу
                 tableBody.appendChild(weekRow);
-            }
-            
-            // Переходим к следующему понедельнику
-            currentMonday.setDate(currentMonday.getDate() + 7);
-            
-            // Выходим из цикла, если мы достигли следующего года
-            if (currentMonday.getFullYear() > 2025) {
-                break;
+                
+                // Переходим к следующему понедельнику
+                currentMonday.setDate(currentMonday.getDate() + 7);
+                weekNumber++;
+                
+                // Обновляем историю фаз - сдвигаем недели
+                previousWeekPhases = currentWeekPhases;
+                currentWeekPhases = nextWeekPhases;
+                nextWeekPhases = [];
             }
         }
+        
+        // Инициализация календаря с начальной датой
+        createCalendar(startDate);
+        
+        // Обработчик события для кнопки пересчета
+        document.getElementById('recalculate-btn').addEventListener('click', function() {
+            const dateInput = document.getElementById('start-date');
+            if (dateInput.value) {
+                startDate = new Date(dateInput.value);
+                
+                // Обновляем референсную дату новолуния
+                firstNewMoonReference = null; // Сбрасываем, чтобы пересчитать
+                updateFirstNewMoonReference();
+                
+                // Формируем заголовок с диапазоном дат
+                const startYear = startDate.getFullYear();
+                const endDateCalc = new Date(startDate);
+                endDateCalc.setFullYear(startYear + 1);
+                endDateCalc.setDate(endDateCalc.getDate() - 1);
+                const endYear = endDateCalc.getFullYear();
+                
+                if (startYear === endYear) {
+                    document.querySelector('h1').textContent = `Календарь на ${startYear} год`;
+                } else {
+                    document.querySelector('h1').textContent = `Календарь на ${startYear}-${endYear} годы`;
+                }
+                
+                // Пересоздаем календарь
+                createCalendar(startDate);
+            }
+        });
 
         // Функция для определения ключевых лунных событий
         function detectLunarEvents(days, phases) {
@@ -604,25 +793,69 @@
 
         // Функция для определения номера лунного цикла
         function getLunarCycleNumber(date) {
-            // Используем первое новолуние 2025 года как отправную точку
-            // Первое новолуние 2025 года - 29 января 2025
-            const firstNewMoonOf2025 = new Date(2025, 0, 29);
+            // Используем не фиксированную дату, а первое новолуние для выбранного года
+            if (!firstNewMoonReference) {
+                updateFirstNewMoonReference();
+            }
             
             // Длительность лунного цикла в миллисекундах
             const lunarCycleInMs = 29.53058867 * 24 * 60 * 60 * 1000;
             
             // Вычисляем, сколько лунных циклов прошло
-            const timeDiff = date.getTime() - firstNewMoonOf2025.getTime();
+            const timeDiff = date.getTime() - firstNewMoonReference.getTime();
             const cyclesPassed = timeDiff / lunarCycleInMs;
             
-            // Определяем номер текущего лунного цикла
-            // Если дата до первого новолуния, считаем как 13-й цикл предыдущего года
+            // Если дата до первого новолуния выбранного года
             if (timeDiff < 0) {
-                return "13 (2024)";
+                // Получаем год из выбранной стартовой даты
+                const selectedYear = startDate.getFullYear();
+                return `13 (${selectedYear - 1})`;
             }
             
-            // Иначе определяем номер цикла в 2025 году
+            // Иначе определяем номер цикла в выбранном году
             return Math.floor(cyclesPassed) + 1;
+        }
+
+        // Функция для обновления референсной даты первого новолуния
+        function updateFirstNewMoonReference() {
+            const selectedYear = startDate.getFullYear();
+            
+            // Таблица первых новолуний по годам (можно расширить при необходимости)
+            const firstNewMoons = {
+                2023: new Date(2023, 0, 21), // 21 января 2023
+                2024: new Date(2024, 0, 11), // 11 января 2024
+                2025: new Date(2025, 0, 29), // 29 января 2025
+                2026: new Date(2026, 0, 18), // 18 января 2026
+                2027: new Date(2027, 0, 7),  // 7 января 2027
+                2028: new Date(2028, 0, 27), // 27 января 2028
+                2029: new Date(2029, 0, 15), // 15 января 2029
+                2030: new Date(2030, 0, 5)   // 5 января 2030
+            };
+            
+            // Если у нас есть данные о первом новолунии для выбранного года
+            if (firstNewMoons[selectedYear]) {
+                firstNewMoonReference = firstNewMoons[selectedYear];
+            } else {
+                // Если нет данных, используем примерный расчет
+                // Лунный цикл ≈ 29.53 дней, 12 циклов ≈ 354.36 дней (год)
+                // Находим ближайший известный год и экстраполируем
+                let closestYear = 2025; // Берем за основу
+                let closestNewMoon = new Date(firstNewMoons[closestYear]);
+                
+                // Количество лет разницы
+                const yearDiff = selectedYear - closestYear;
+                
+                // Примерное смещение новолуния (сдвиг на 11 дней каждый год)
+                // Синодический месяц ≈ 29.53 дней, солнечный год ≈ 365.25 дней
+                // Разница ≈ 10.88 дней в год
+                closestNewMoon.setDate(closestNewMoon.getDate() + yearDiff * 11);
+                
+                // Корректируем на високосные годы
+                const leapYearsCount = Math.floor(yearDiff / 4);
+                closestNewMoon.setDate(closestNewMoon.getDate() + leapYearsCount);
+                
+                firstNewMoonReference = closestNewMoon;
+            }
         }
 
         // Функция для получения расширенных астрологических рекомендаций
@@ -762,6 +995,219 @@
             
             return phaseAdvice[moonPhase] || "Нет специфических рекомендаций для этой фазы луны.";
         }
+
+        // Функция для определения, нужно ли подсвечивать неделю с "Последней четвертью"
+        function shouldHighlightLastQuarter(predominantPhase, weekPhases, prevWeekPhases, nextWeekPhases) {
+            // Если преобладающая фаза недели - "Последняя четверть", подсвечиваем
+            if (predominantPhase.name === "Последняя четверть") {
+                return true;
+            }
+            
+            // Подсчитываем количество дней с фазой "Последняя четверть" на текущей неделе
+            const currentLastQuarterCount = weekPhases.filter(phase => phase.name === "Последняя четверть").length;
+            
+            // Если "Последней четверти" нет на этой неделе, не подсвечиваем
+            if (currentLastQuarterCount === 0) {
+                return false;
+            }
+            
+            // Подсчитываем на соседних неделях
+            const prevLastQuarterCount = prevWeekPhases.filter(phase => phase.name === "Последняя четверть").length;
+            const nextLastQuarterCount = nextWeekPhases.filter(phase => phase.name === "Последняя четверть").length;
+            
+            // Подсвечиваем, если на текущей неделе больше дней с фазой "Последняя четверть", 
+            // чем на предыдущей И следующей неделях
+            return (currentLastQuarterCount > prevLastQuarterCount && 
+                    currentLastQuarterCount > nextLastQuarterCount);
+        }
+
+        // Инициализация кастомного date picker
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('datepicker-input');
+            const hiddenInput = document.getElementById('start-date');
+            const calendar = document.getElementById('datepicker-calendar');
+            const prevBtn = document.querySelector('.prev-month');
+            const nextBtn = document.querySelector('.next-month');
+            const monthDisplay = document.querySelector('.month-display');
+            const daysContainer = document.querySelector('.calendar-days');
+            const closeBtn = document.querySelector('.close-btn');
+            
+            let currentDate = new Date(2025, 0, 1);
+            let selectedDate = new Date(2025, 0, 1);
+            
+            // Открытие/закрытие календаря при клике на поле ввода
+            dateInput.addEventListener('click', function() {
+                calendar.style.display = 'block';
+                renderCalendar(currentDate);
+            });
+            
+            // Закрытие календаря при клике вне его
+            document.addEventListener('click', function(e) {
+                if (!calendar.contains(e.target) && e.target !== dateInput) {
+                    calendar.style.display = 'none';
+                }
+            });
+            
+            // Закрытие календаря по кнопке
+            closeBtn.addEventListener('click', function() {
+                calendar.style.display = 'none';
+            });
+            
+            // Обработка кнопок навигации по месяцам
+            prevBtn.addEventListener('click', function() {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar(currentDate);
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar(currentDate);
+            });
+            
+            // Функция отрисовки календаря
+            function renderCalendar(date) {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                
+                // Обновляем заголовок с месяцем и годом
+                const monthNames = [
+                    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+                ];
+                monthDisplay.textContent = `${monthNames[month]} ${year}`;
+                
+                // Очищаем контейнер дней
+                daysContainer.innerHTML = '';
+                
+                // Получаем первый день месяца
+                const firstDay = new Date(year, month, 1);
+                
+                // Определяем день недели первого дня месяца (0 - воскресенье, 1 - понедельник и т.д.)
+                // Корректируем для начала недели с понедельника (0 - понедельник, 6 - воскресенье)
+                let firstDayOfWeek = firstDay.getDay() || 7;
+                firstDayOfWeek = firstDayOfWeek === 1 ? 0 : firstDayOfWeek - 1;
+                
+                // Получаем последний день месяца
+                const lastDay = new Date(year, month + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                
+                // Получаем последний день предыдущего месяца
+                const prevMonthLastDay = new Date(year, month, 0).getDate();
+                
+                // Заполняем дни предыдущего месяца
+                for (let i = 0; i < firstDayOfWeek; i++) {
+                    const day = prevMonthLastDay - firstDayOfWeek + i + 1;
+                    const dayElement = createDayElement(day, 'other-month');
+                    
+                    const prevMonth = month === 0 ? 11 : month - 1;
+                    const prevYear = month === 0 ? year - 1 : year;
+                    
+                    dayElement.addEventListener('click', function() {
+                        selectDate(new Date(prevYear, prevMonth, day));
+                    });
+                    
+                    daysContainer.appendChild(dayElement);
+                }
+                
+                // Заполняем дни текущего месяца
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dayElement = createDayElement(i);
+                    
+                    // Отмечаем текущий день и выбранный день
+                    const dayDate = new Date(year, month, i);
+                    const today = new Date();
+                    
+                    if (isSameDay(dayDate, today)) {
+                        dayElement.classList.add('today');
+                    }
+                    
+                    if (isSameDay(dayDate, selectedDate)) {
+                        dayElement.classList.add('selected');
+                    }
+                    
+                    dayElement.addEventListener('click', function() {
+                        selectDate(new Date(year, month, i));
+                    });
+                    
+                    daysContainer.appendChild(dayElement);
+                }
+                
+                // Заполняем дни следующего месяца
+                const totalDaysShown = firstDayOfWeek + daysInMonth;
+                const nextMonthDays = 42 - totalDaysShown; // 6 строк по 7 дней = 42
+                
+                for (let i = 1; i <= nextMonthDays; i++) {
+                    const dayElement = createDayElement(i, 'other-month');
+                    
+                    const nextMonth = month === 11 ? 0 : month + 1;
+                    const nextYear = month === 11 ? year + 1 : year;
+                    
+                    dayElement.addEventListener('click', function() {
+                        selectDate(new Date(nextYear, nextMonth, i));
+                    });
+                    
+                    daysContainer.appendChild(dayElement);
+                }
+            }
+            
+            // Функция создания элемента дня
+            function createDayElement(day, className = '') {
+                const dayElement = document.createElement('div');
+                dayElement.textContent = day;
+                dayElement.className = 'calendar-day';
+                
+                if (className) {
+                    dayElement.classList.add(className);
+                }
+                
+                return dayElement;
+            }
+            
+            // Функция выбора даты
+            function selectDate(date) {
+                selectedDate = date;
+                
+                // Обновляем значение в поле ввода
+                dateInput.value = formatDate(date);
+                
+                // Обновляем скрытое поле
+                hiddenInput.value = formatDateISO(date);
+                
+                // Закрываем календарь
+                calendar.style.display = 'none';
+                
+                // Перерисовываем календарь
+                renderCalendar(date);
+            }
+            
+            // Функция форматирования даты (ДД.ММ.ГГГГ)
+            function formatDate(date) {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                
+                return `${day}.${month}.${year}`;
+            }
+            
+            // Функция форматирования даты в ISO формат (ГГГГ-ММ-ДД)
+            function formatDateISO(date) {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                
+                return `${year}-${month}-${day}`;
+            }
+            
+            // Функция проверки, совпадают ли даты
+            function isSameDay(date1, date2) {
+                return date1.getDate() === date2.getDate() &&
+                       date1.getMonth() === date2.getMonth() &&
+                       date1.getFullYear() === date2.getFullYear();
+            }
+            
+            // Инициализация календаря
+            renderCalendar(currentDate);
+        });
     </script>
 </body>
 </html>
