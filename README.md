@@ -1,5 +1,6 @@
 
-![Screenshot_2025-03-20_13-24-57](https://github.com/user-attachments/assets/e6ad568a-2685-4187-ad65-c69d2be5f110)
+![Screenshot_2025-03-20_15-36-36](https://github.com/user-attachments/assets/51cbbece-5318-499b-8921-cb2a37589d4e)
+
 
 
 # Лунный Календарь 2025 года
