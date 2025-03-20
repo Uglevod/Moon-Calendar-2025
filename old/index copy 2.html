@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Недели 2025 года и фазы луны</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .week-number {
+            font-weight: bold;
+        }
+        .predominant-phase {
+            font-weight: bold;
+        }
+        .date {
+            font-size: 0.9em;
+        }
+        .moon-phase {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Недели 2025 года и фазы луны</h1>
+    <table id="lunar-calendar">
+        <thead>
+            <tr>
+                <th>№ недели</th>
+                <th>Месяц</th>
+                <th>Даты</th>
+                <th>Преобладающая фаза</th>
+                <th>ПН</th>
+                <th>ВТ</th>
+                <th>СР</th>
+                <th>ЧТ</th>
+                <th>ПТ</th>
+                <th>СБ</th>
+                <th>ВС</th>
+            </tr>
+        </thead>
+        <tbody id="calendar-body">
+            <!-- Данные будут заполнены с помощью JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        // Функция для расчета фазы луны
+        function getMoonPhase(date) {
+            const LUNAR_MONTH = 29.53058867; // Лунный месяц в днях
+            
+            // Новолуние 6 января 2000 года - опорная точка
+            const reference = new Date(2000, 0, 6, 18, 14, 0);
+            
+            // Разница в миллисекундах
+            const diff = date.getTime() - reference.getTime();
+            const days = diff / (1000 * 60 * 60 * 24);
+            const cycles = days / LUNAR_MONTH;
+            
+            // Получаем только дробную часть
+            let phase = cycles - Math.floor(cycles);
+            
+            // Преобразуем в угол (0 - 1 → 0° - 360°)
+            phase = phase * 360;
+            
+            // Определяем фазу луны по углу
+            if (phase < 22.5) return { symbol: "🌑", name: "Новолуние" };
+            else if (phase < 67.5) return { symbol: "🌒", name: "Растущий полумесяц" };
+            else if (phase < 112.5) return { symbol: "🌓", name: "Первая четверть" };
+            else if (phase < 157.5) return { symbol: "🌔", name: "Растущая луна" };
+            else if (phase < 202.5) return { symbol: "🌕", name: "Полнолуние" };
+            else if (phase < 247.5) return { symbol: "🌖", name: "Убывающая луна" };
+            else if (phase < 292.5) return { symbol: "🌗", name: "Последняя четверть" };
+            else if (phase < 337.5) return { symbol: "🌘", name: "Убывающий полумесяц" };
+            else return { symbol: "🌑", name: "Новолуние" };
+        }
+
+        // Функция для определения преобладающей фазы луны на неделе
+        function getPredominantMoonPhase(phases) {
+            const phaseCounts = {};
+            
+            // Подсчитываем количество каждой фазы
+            phases.forEach(phase => {
+                if (!phaseCounts[phase.name]) {
+                    phaseCounts[phase.name] = { count: 0, symbol: phase.symbol };
+                }
+                phaseCounts[phase.name].count++;
+            });
+            
+            // Находим фазу с наибольшим количеством
+            let predominant = { name: "", count: 0, symbol: "" };
+            for (const [name, data] of Object.entries(phaseCounts)) {
+                if (data.count > predominant.count) {
+                    predominant = { name, count: data.count, symbol: data.symbol };
+                }
+            }
+            
+            return predominant;
+        }
+
+        // Функция для получения номера недели по ISO
+        function getISOWeek(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        // Функция для форматирования даты
+        function formatDate(date) {
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'numeric' });
+        }
+
+        // Получение первого дня года (может быть не понедельник)
+        const firstDayOfYear = new Date(2025, 0, 1);
+        
+        // Поиск первого понедельника года или последнего понедельника предыдущего года
+        let currentMonday = new Date(firstDayOfYear);
+        currentMonday.setDate(currentMonday.getDate() - (currentMonday.getDay() || 7) + 1);
+        
+        // Если currentMonday находится в предыдущем году, но неделя относится к текущему году по ISO
+        if (currentMonday.getFullYear() < 2025 && getISOWeek(currentMonday) === 1) {
+            // Это первая неделя 2025 года
+        } else if (currentMonday.getFullYear() < 2025) {
+            // Перейти к первому понедельнику 2025 года
+            currentMonday = new Date(2025, 0, 1);
+            currentMonday.setDate(currentMonday.getDate() + (8 - currentMonday.getDay()) % 7);
+        }
+        
+        const tableBody = document.getElementById('calendar-body');
+        
+        // Создаем строки для каждой недели до конца 2025 года
+        while (currentMonday.getFullYear() <= 2025) {
+            const weekRow = document.createElement('tr');
+            const weekNumber = getISOWeek(currentMonday);
+            const weekDays = [];
+            const moonPhases = [];
+            
+            // Только если это неделя 2025 года
+            if (currentMonday.getFullYear() === 2025 || 
+                (currentMonday.getFullYear() < 2025 && weekNumber === 1)) {
+                
+                // Создаем ячейку с номером недели
+                const weekNumberCell = document.createElement('td');
+                weekNumberCell.className = 'week-number';
+                weekNumberCell.textContent = weekNumber;
+                weekRow.appendChild(weekNumberCell);
+                
+                // Создаем массив дней недели
+                for (let i = 0; i < 7; i++) {
+                    const currentDay = new Date(currentMonday);
+                    currentDay.setDate(currentMonday.getDate() + i);
+                    weekDays.push(currentDay);
+                    
+                    // Рассчитываем фазу луны для каждого дня
+                    const moonPhase = getMoonPhase(currentDay);
+                    moonPhases.push(moonPhase);
+                }
+                
+                // Создаем ячейку с названием месяца (используем четверг (индекс 3) как определяющий день недели)
+                const monthCell = document.createElement('td');
+                const monthName = weekDays[3].toLocaleDateString('ru-RU', { month: 'long' });
+                monthCell.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                weekRow.appendChild(monthCell);
+                
+                // Определяем преобладающую фазу луны
+                const predominantPhase = getPredominantMoonPhase(moonPhases);
+                
+                // Создаем ячейку с датами недели
+                const weekDatesCell = document.createElement('td');
+                weekDatesCell.className = 'date';
+                weekDatesCell.textContent = `${formatDate(weekDays[0])} - ${formatDate(weekDays[6])}`;
+                weekRow.appendChild(weekDatesCell);
+                
+                // Создаем ячейку с преобладающей фазой луны
+                const predominantPhaseCell = document.createElement('td');
+                predominantPhaseCell.className = 'predominant-phase';
+                predominantPhaseCell.innerHTML = `${predominantPhase.symbol} ${predominantPhase.name}`;
+                weekRow.appendChild(predominantPhaseCell);
+                
+                // Создаем ячейки для каждого дня недели с фазой луны
+                for (let i = 0; i < 7; i++) {
+                    const dayCell = document.createElement('td');
+                    dayCell.className = 'moon-phase';
+                    dayCell.title = moonPhases[i].name;
+                    dayCell.textContent = moonPhases[i].symbol;
+                    weekRow.appendChild(dayCell);
+                }
+                
+                // Добавляем строку в таблицу
+                tableBody.appendChild(weekRow);
+            }
+            
+            // Переходим к следующему понедельнику
+            currentMonday.setDate(currentMonday.getDate() + 7);
+            
+            // Выходим из цикла, если мы достигли следующего года
+            if (currentMonday.getFullYear() > 2025) {
+                break;
+            }
+        }
+    </script>
+</body>
+</html>
